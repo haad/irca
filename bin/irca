@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require_relative '../lib/irca.rb'
+
+conf_file=nil
+station_filter=""
+options = {}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: irca.rb [options]"
+
+  opts.on('-f', '--config FILENAME', 'Config filename') { |v| options[:conf_file] = v }
+  opts.on('-N', '--station-name NAME', 'Station name') { |v| options[:station_name] = v }
+  opts.on('-C', '--command cmd', 'Run given command') { |v| options[:command] = v }
+  opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
+  opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
+  opts.on('-l', '--list-only', 'Only list clients') { |v| options[:list_only] = true }
+  opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
+  opts.on('-v', '--version', 'Print Usage/version') { puts "Innovatrics Remote Connection Agent:"+IRCA_VERSION; puts opts; exit; }
+  opts.on('-h', '--help', 'Print help') { puts opts; exit; }
+
+end.parse!
+
+if options[:start_shell] and not options[:command].nil?
+  puts "-C and -s Can't be used together."
+  exit
+end
+
+#
+# Try to load config file from HOMEdir if there is non try default location.
+#
+if not options[:conf_file].nil? and File.exists?(options[:conf_file])
+  conf_file = options[:conf_file]
+else
+  if File.exists?(ENV['HOME']+"/.irca.json")
+    conf_file = ENV['HOME']+"/.irca.json"
+  else
+    conf_file = "/etc/irca.json"
+  end
+end
+
+usage unless File.exists?(conf_file)
+
+config = Configuration.new(conf_file)
+
+#
+# Setup filter for remote connection
+#
+station_filter << "&station_name="+options[:station_name].to_s unless options[:station_name].nil?
+station_filter << "&status="+options[:station_status].to_s unless options[:station_status].nil?
+
+innrm_server = Innrm_server.new(config.innrm_server, config.innrm_port.to_s, station_filter)
+
+stations = JSON.parse(innrm_server.get_stations)
+
+stations.map do |station|
+  puts "Received station: #{station['station']['station_name']}, reverse_tunnel_port is: #{station['station']['reverse_tunnel_port']}, client status is: #{station['station']['status']}"
+  unless options[:list_only]
+    ssh = SSHConector.new(config.innrm_server, config.innrm_user, station['station']['reverse_tunnel_port'], config.innrm_key, config.innrm_pass, :info)
+
+    if not options[:command].nil?
+      ssh.run_command(options[:command])
+    end
+
+    if options[:start_shell]
+      ssh.start_shell()
+    end
+
+  end
+end
+
+
+
