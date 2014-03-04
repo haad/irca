@@ -8,6 +8,7 @@ class SSHConector
     @port = port
     @key = key
     @passwd = passwd
+    @ssh=nil
 
     if verbose
       @verbose = verbose
@@ -36,10 +37,26 @@ class SSHConector
   def start_shell()
     puts "Starting shell on server #{@server}, #{@port}"
     if @key.nil?
-      `sshpass -p @port -l @user -p @passwd @server`
+      system("sshpass -p @port -l @user -p @passwd @server")
     else
       system("ssh -p #{@port} -l #{@user} -i #{@key} #{@server}")
     end
   end
 
+  def start_local_port_forward(lport)
+    puts "Forwarding local connections to port: #{@lport} to remote server: #{@server}:#{@port}"
+
+    begin
+      @ssh = Net::SSH.start(@server, @user, :port => @port, :keys => @key, :verbose => :debug)
+
+      tunnel_thread = Thread.new do
+        @ssh.forward.local(lport, 'localhost', lport)
+      end
+    end
+  end
+
+  def stop_local_port_forward(lport)
+    @ssh.forward.cancel_local lport
+    @ssh.close
+  end
 end

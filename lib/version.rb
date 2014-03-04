@@ -1,1 +1,1 @@
-IRCA_VERSION="0.0.1-alpha"
+IRCA_VERSION="0.0.2"

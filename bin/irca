@@ -16,6 +16,7 @@ OptionParser.new do |opts|
   opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
   opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
   opts.on('-l', '--list-only', 'Only list clients') { |v| options[:list_only] = true }
+  opts.on('-L', '--local-port-fw port', 'Forward local connection to remote server localhost:port.') { |v| options[:local_port] = v }
   opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
   opts.on('-v', '--version', 'Print Usage/version') { puts "Innovatrics Remote Connection Agent:"+IRCA_VERSION; puts opts; exit; }
   opts.on('-h', '--help', 'Print help') { puts opts; exit; }
@@ -40,7 +41,7 @@ else
   end
 end
 
-usage unless File.exists?(conf_file)
+opts unless File.exists?(conf_file)
 
 config = Configuration.new(conf_file)
 
@@ -59,12 +60,20 @@ stations.map do |station|
   unless options[:list_only]
     ssh = SSHConector.new(config.innrm_server, config.innrm_user, station['station']['reverse_tunnel_port'], config.innrm_key, config.innrm_pass, :info)
 
+    if options[:local_port]
+      ssh.start_local_port_forward(options[:local_port])
+    end
+
     if not options[:command].nil?
       ssh.run_command(options[:command])
     end
 
     if options[:start_shell]
       ssh.start_shell()
+    end
+
+    if options[:local_port]
+      ssh.stop_local_port_forward(options[:local_port])
     end
 
   end
