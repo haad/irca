@@ -10,16 +10,17 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: irca.rb [options]"
 
-  opts.on('-f', '--config FILENAME', 'Config filename') { |v| options[:conf_file] = v }
-  opts.on('-N', '--station-name NAME', 'Station name') { |v| options[:station_name] = v }
   opts.on('-C', '--command cmd', 'Run given command') { |v| options[:command] = v }
-  opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
-  opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
+  opts.on('-f', '--config FILENAME', 'Config filename') { |v| options[:conf_file] = v }
+  opts.on('-h', '--help', 'Print help') { puts opts; exit; }
   opts.on('-l', '--list-only', 'Only list clients') { |v| options[:list_only] = true }
   opts.on('-L', '--local-port-fw port', 'Forward local connection to remote server localhost:port.') { |v| options[:local_port] = v }
+  opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
+  opts.on('-N', '--station-name NAME', 'Station name') { |v| options[:station_name] = v }
+  opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
+  opts.on('-u', '--upload-pub-key', 'Upload publick key to server if it is not there') { |v| options[:upload_pub_key] = true }
   opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
   opts.on('-v', '--version', 'Print Usage/version') { puts "Innovatrics Remote Connection Agent:"+IRCA_VERSION; puts opts; exit; }
-  opts.on('-h', '--help', 'Print help') { puts opts; exit; }
 
 end.parse!
 
@@ -64,8 +65,12 @@ stations.map do |station|
       ssh.start_local_port_forward(options[:local_port])
     end
 
-    if not options[:command].nil?
+    unless options[:command].nil?
       ssh.run_command(options[:command])
+    end
+
+    if options[:upload_pub_key]
+      ssh.upload_pub_key()
     end
 
     if options[:start_shell]
