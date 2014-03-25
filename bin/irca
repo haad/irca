@@ -15,8 +15,9 @@ OptionParser.new do |opts|
   opts.on('-h', '--help', 'Print help') { puts opts; exit; }
   opts.on('-l', '--list-only', 'Only list clients') { |v| options[:list_only] = true }
   opts.on('-L', '--local-port-fw port', 'Forward local connection to remote server localhost:port.') { |v| options[:local_port] = v }
-  opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
   opts.on('-N', '--station-name NAME', 'Station name') { |v| options[:station_name] = v }
+  opts.on('-P', '--innrm-port port', 'Innrm local port forward') { |v| options[:station_port] = v }
+  opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
   opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
   opts.on('-u', '--upload-pub-key', 'Upload publick key to server if it is not there') { |v| options[:upload_pub_key] = true }
   opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
@@ -57,9 +58,16 @@ innrm_server = Innrm_server.new(config.innrm_server, config.innrm_port.to_s, sta
 stations = JSON.parse(innrm_server.get_stations)
 
 stations.map do |station|
-  puts "Received station: #{station['station']['station_name']}, reverse_tunnel_port is: #{station['station']['reverse_tunnel_port']}, client status is: #{station['station']['status']}"
+
+  if not options[:station_port].nil?
+    innrm_port = options[:station_port]
+  else
+    innrm_port = station['station']['reverse_tunnel_port']
+  end
+
+  puts "Received station: #{station['station']['station_name']}, reverse_tunnel_port is: #{innrm_port}, client status is: #{station['station']['status']}"
   unless options[:list_only]
-    ssh = SSHConector.new(config.innrm_server, config.innrm_user, station['station']['reverse_tunnel_port'], config.innrm_key, config.innrm_pass, :info)
+    ssh = SSHConector.new(config.innrm_server, config.innrm_user, innrm_port, config.innrm_key, config.innrm_pass, :info)
 
     if options[:local_port]
       ssh.start_local_port_forward(options[:local_port])
@@ -78,6 +86,7 @@ stations.map do |station|
     end
 
     if options[:local_port]
+      puts "Shuting down local port forward"
       ssh.stop_local_port_forward(options[:local_port])
     end
 
