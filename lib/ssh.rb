@@ -66,14 +66,13 @@ class SSHConector
   #
   # Start port-forward
   #
-  def start_local_port_forward(lport)
-    puts "Forwarding local connections to port: #{lport} to remote server: #{@server}:#{lport} "
+  def start_local_port_forward(bind_address, port, host, hostport)
+    puts "Forwarding local connections to port: #{port} to remote server: #{host}:#{hostport} "
 
     begin
       @ssh = Net::SSH.start(@server, @user, :port => @port, :keys => @key, :verbose => :warn)
-
       tunnel_thread = Thread.new do
-        @ssh.forward.local(lport, 'localhost', lport, 'localhost')
+        @ssh.forward.local(port, bind_address, hostport, host)
         @ssh.loop { true }
       end
     end

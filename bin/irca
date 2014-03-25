@@ -70,7 +70,25 @@ stations.map do |station|
     ssh = SSHConector.new(config.innrm_server, config.innrm_user, innrm_port, config.innrm_key, config.innrm_pass, :info)
 
     if options[:local_port]
-      ssh.start_local_port_forward(options[:local_port])
+      #
+      # We use same format as ssh [bind_address:]port:host:hostport
+      fw = options[:local_port].split(':')
+
+      if fw.count < 3
+        hostport = fw.pop
+        host = 'localhost'
+        port = hostport
+        bind_address = 'localhost'
+        puts "Not enough arguments for local_port_forward using only port number #{port}"
+      else
+        hostport = fw.pop
+        host = fw.pop
+        port = fw.pop
+
+        bind_address = 'localhost'
+      end
+
+      ssh.start_local_port_forward(bind_address, port, host, hostport)
     end
 
     unless options[:command].nil?
