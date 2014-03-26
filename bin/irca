@@ -7,7 +7,9 @@ conf_file=nil
 station_filter=""
 options = {}
 
-OptionParser.new do |opts|
+usage = ""
+
+OptionParser.new  do |opts|
   opts.banner = "Usage: irca.rb [options]"
 
   opts.on('-C', '--command cmd', 'Run given command') { |v| options[:command] = v }
@@ -23,12 +25,20 @@ OptionParser.new do |opts|
   opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
   opts.on('-v', '--version', 'Print Usage/version') { puts "Innovatrics Remote Connection Agent:"+IRCA_VERSION; puts opts; exit; }
 
+  usage = opts.to_s
 end.parse!
 
 if options[:start_shell] and not options[:command].nil?
+  puts usage
   puts "-C and -s Can't be used together."
   exit
 end
+
+if options.empty?
+  puts usage
+  exit
+end
+
 
 #
 # Try to load config file from HOMEdir if there is non try default location.
