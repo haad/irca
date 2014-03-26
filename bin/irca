@@ -6,6 +6,7 @@ require_relative '../lib/irca.rb'
 conf_file=nil
 station_filter=""
 options = {}
+upload_files=[]
 
 usage = ""
 
@@ -19,9 +20,11 @@ OptionParser.new  do |opts|
   opts.on('-L', '--local-port-fw port', 'Forward local connection to remote server localhost:port.') { |v| options[:local_port] = v }
   opts.on('-N', '--station-name NAME', 'Station name') { |v| options[:station_name] = v }
   opts.on('-P', '--innrm-port port', 'Innrm local port forward') { |v| options[:station_port] = v }
+  opts.on('-R', '--recursive', 'Recursive File upload') { |v| options[:recursive_upload] = true }
   opts.on('-s', '--start-shell', 'Start shell') { |v| options[:start_shell] = true }
   opts.on('-S', '--station-status Status[ok, ping_timeout, not_connected]', 'Station status') { |v| options[:station_status] = v }
-  opts.on('-u', '--upload-pub-key', 'Upload publick key to server if it is not there') { |v| options[:upload_pub_key] = true }
+  opts.on('-U', '--upload REMOTE_PATH', 'Upload file/files to remote path') { |v| options[:upload_files] = v }
+  opts.on('-u', '--upload-pub-key', 'Upload public key to server if it is not there') { |v| options[:upload_pub_key] = true }
   opts.on('-V', '--verbose', 'Verbose logging') { |v| options[:verbose] = true }
   opts.on('-v', '--version', 'Print Usage/version') { puts "Innovatrics Remote Connection Agent:"+IRCA_VERSION; puts opts; exit; }
 
@@ -39,6 +42,15 @@ if options.empty?
   exit
 end
 
+unless options[:upload_files].nil?
+  upload_files=ARGV
+  upload_files.each do |file|
+    if File.directory?(file) and not options[:recursive_upload]
+      puts "Using Directory as argument for file upload without --recursive, add --recursive to upload directories."
+      exit
+    end
+  end
+end
 
 #
 # Try to load config file from HOMEdir if there is non try default location.
@@ -107,6 +119,10 @@ stations.map do |station|
 
     if options[:upload_pub_key]
       ssh.upload_pub_key()
+    end
+
+    if options[:upload_files]
+      ssh.upload_files(options[:upload_files], upload_files, options[:recursive_upload])
     end
 
     if options[:start_shell]

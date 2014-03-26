@@ -63,6 +63,16 @@ class SSHConector
     system("ssh -p #{@port} -l #{@user} -i #{@key} #{@server} 'mkdir -p ~/.ssh; grep -q \"#{pub_key_data}\" ~/.ssh/authorized_keys || echo \"#{pub_key_data}\" >> ~/.ssh/authorized_keys; chmod 700 ~/.ssh; chmod 644 ~/.ssh/authorized_keys'")
   end
 
+
+  #
+  # upload_files
+  # Upload files to a remote location on server
+  #
+  def upload_files(dest_directory, files, recursive)
+
+    system("rsync -avc -e \'ssh -i #{File.expand_path(@key)} -p #{@port} -l #{@user}\' #{files.join(" ")} #{@server}:#{dest_directory}")
+  end
+
   #
   # Start port-forward
   #
